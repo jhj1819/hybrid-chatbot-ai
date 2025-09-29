@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -22,8 +22,8 @@ RUN pip install --upgrade pip
 # 핵심 패키지 먼저 설치
 RUN pip install --no-cache-dir fastapi uvicorn openai python-dotenv numpy pydantic requests
 
-# langchain 패키지 설치 (호환 버전)
-RUN pip install --no-cache-dir langchain==0.1.0 langchain-openai==0.0.5 langchain-community==0.0.10
+# langchain 패키지 설치 (Python 3.12 호환 버전)
+RUN pip install --no-cache-dir langchain==0.3.27 langchain-openai==0.2.0 langchain-community==0.3.0
 
 # FAISS 설치
 RUN pip install --no-cache-dir faiss-cpu==1.12.0
