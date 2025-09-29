@@ -22,8 +22,8 @@ RUN pip install --upgrade pip
 # 핵심 패키지 먼저 설치 (Pydantic 버전 명시)
 RUN pip install --no-cache-dir fastapi uvicorn openai python-dotenv numpy pydantic==2.11.9 requests
 
-# langchain 패키지 설치 (호환 버전으로 수정)
-RUN pip install --no-cache-dir langchain==0.1.0 langchain-openai==0.0.5 langchain-community==0.0.10
+# langchain 패키지 설치 (안정적인 버전으로 수정)
+RUN pip install --no-cache-dir langchain==0.2.16 langchain-openai==0.1.23 langchain-community==0.2.16
 
 # FAISS 설치
 RUN pip install --no-cache-dir faiss-cpu==1.12.0
