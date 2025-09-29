@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Python 의존성 설치 (단계별로 설치하여 오류 방지)
+# Python 의존성 설치 (의존성 충돌 해결)
 COPY requirements.txt .
 
 # pip 업그레이드
@@ -22,8 +22,8 @@ RUN pip install --upgrade pip
 # 핵심 패키지 먼저 설치
 RUN pip install --no-cache-dir fastapi uvicorn openai python-dotenv numpy pydantic requests
 
-# langchain 패키지 설치 (Python 3.12 호환 버전)
-RUN pip install --no-cache-dir langchain==0.3.27 langchain-openai==0.2.0 langchain-community==0.3.0
+# langchain 패키지 설치 (호환 버전으로 수정)
+RUN pip install --no-cache-dir langchain==0.1.0 langchain-openai==0.0.5 langchain-community==0.0.10
 
 # FAISS 설치
 RUN pip install --no-cache-dir faiss-cpu==1.12.0
