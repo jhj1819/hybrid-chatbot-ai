@@ -8,31 +8,44 @@ echo "🚀 AI 서버 배포를 시작합니다..."
 echo "📦 시스템 패키지를 업데이트합니다..."
 sudo dnf update -y
 
-# 2. Python 및 필수 패키지 설치
-echo "🐍 Python 환경을 설정합니다..."
-sudo dnf install python3 python3-pip git curl wget unzip -y
+# 2. Docker 및 Docker Compose 설치
+echo "🐳 Docker를 설치합니다..."
+sudo dnf install docker docker-compose git curl wget unzip -y
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker ec2-user
 
 # 3. 프로젝트 디렉토리로 이동
 cd ~/hybrid-chatbot-ai
 
-# 4. 가상환경 생성 및 활성화
-echo "🔧 가상환경을 설정합니다..."
-python3 -m venv venv
-source venv/bin/activate
-
-# 5. pip 업그레이드 및 의존성 설치
-echo "📚 의존성을 설치합니다..."
-pip install --upgrade pip
-pip install -r requirements.txt
-
-# 6. 환경 변수 파일 확인
+# 4. 환경 변수 파일 확인 및 생성
 if [ ! -f .env ]; then
-    echo "⚠️  .env 파일이 없습니다. env.example을 복사하여 설정하세요."
-    cp env.example .env
-    echo "📝 .env 파일을 편집하여 OpenAI API 키를 설정하세요."
+    echo "⚠️  .env 파일이 없습니다. 생성합니다..."
+    cat > .env << 'EOF'
+# OpenAI API 키 (아래 값을 실제 키로 변경하세요)
+OPENAI_API_KEY=sk-your-actual-openai-api-key-here
+
+# 서버 설정
+PORT=8000
+WORKERS=1
+
+# 로그 설정
+LOG_LEVEL=info
+EOF
+    echo "📝 .env 파일을 편집하여 실제 OpenAI API 키를 설정하세요:"
+    echo "   nano .env"
+    echo "   또는: export OPENAI_API_KEY='sk-your-actual-key'"
     exit 1
 fi
 
-# 7. 서버 실행
-echo "🎯 AI 서버를 시작합니다..."
-python run_server.py
+# 5. Docker로 서버 실행
+echo "🎯 Docker로 AI 서버를 시작합니다..."
+docker-compose up --build -d
+
+echo "✅ 서버가 백그라운드에서 실행 중입니다."
+echo "🌐 서버 URL: http://$(curl -s https://api.ipify.org):8000"
+echo "📖 API 문서: http://$(curl -s https://api.ipify.org):8000/docs"
+echo ""
+echo "📋 서버 상태 확인: docker-compose ps"
+echo "📋 로그 확인: docker-compose logs -f"
+echo "📋 서버 중지: docker-compose down"
