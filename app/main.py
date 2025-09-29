@@ -8,9 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 # --- 우리가 만든 부품들을 불러옵니다 ---
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import FAISS
-from app.strategies.factory import StrategyFactory # ✨ 전략 공장 import
+# langchain 관련 import 제거 (의존성 충돌 방지)
+# from langchain_openai import OpenAIEmbeddings
+# from langchain_community.vectorstores import FAISS
+# from app.strategies.factory import StrategyFactory # ✨ 전략 공장 import
 
 from typing import List
 
@@ -41,13 +42,12 @@ app.add_middleware(
 try:
     # 1. OpenAI 클라이언트 준비
     client = openai.OpenAI(api_key=api_key)
-    # 2. RAG를 위한 Retriever 준비
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-    vectorstore = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
-    retriever = vectorstore.as_retriever(search_kwargs={'k': 3})
-    # 3. 전략 공장(StrategyFactory) 건설
-    strategy_factory = StrategyFactory(client=client, retriever=retriever)
-    print("시스템 초기화 완료: FAISS 인덱스와 전략 공장이 준비되었습니다.")
+    # 2. RAG 기능 비활성화 (의존성 충돌 방지)
+    embeddings = None
+    retriever = None
+    strategy_factory = None
+    print("시스템 초기화 완료: 기본 OpenAI 클라이언트가 준비되었습니다.")
+    print("⚠️  RAG 기능은 비활성화되었습니다. (langchain 의존성 충돌 방지)")
 except Exception as e:
     print(f"시스템 초기화 중 오류 발생: {e}")
     strategy_factory = None
@@ -75,47 +75,64 @@ class EmbeddingResponse(BaseModel):
 def read_root():
     return {"status": "AI server is running"}
 
-# --- ✨ 스트래티지 패턴이 적용된 최종 API ---
+# --- ✨ 간단한 의도 분류 API (RAG 없이) ---
 @app.post("/zeroshot-intent", response_model=IntentResponse)
-async def classify_intent_with_strategy(request: IntentRequest):
-    if strategy_factory is None:
-        raise HTTPException(status_code=500, detail="전략 공장이 준비되지 않았습니다.")
+async def classify_intent_simple(request: IntentRequest):
+    if client is None:
+        raise HTTPException(status_code=500, detail="OpenAI 클라이언트가 준비되지 않았습니다.")
 
     try:
-        # 1. 공장에 mode를 알려주고, 알맞은 전략 부품을 주문합니다.
-        strategy = strategy_factory.get_strategy(request.mode)
+        # 간단한 의도 분류 (RAG 없이)
+        prompt = f"""
+다음 질문을 주어진 의도 목록 중에서 가장 적절한 하나로 분류해주세요.
 
-        # 2. 주문한 전략 부품을 사용하여 의도 분류를 실행합니다.
-        classified_intent = strategy.classify(request.user_question, request.intent_list)
+질문: {request.user_question}
+
+의도 목록: {', '.join(request.intent_list)}
+
+가장 적절한 의도를 하나만 선택해서 답변해주세요.
+"""
+        
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=100,
+            temperature=0.1
+        )
+        
+        classified_intent = response.choices[0].message.content.strip()
         
         # LLM이 목록에 없는 답변을 할 경우의 안전장치
         if classified_intent not in request.intent_list:
             print(f"경고: LLM이 목록에 없는 의도 '{classified_intent}'를 반환했습니다. Fallback을 사용합니다.")
-            classified_intent = "Default Fallback Intent"
+            classified_intent = request.intent_list[0] if request.intent_list else "Default Fallback Intent"
 
         return IntentResponse(
             final_intent=classified_intent,
             bot_response=f"'{request.mode}' 모드로 '{classified_intent}' 분류됨",
-            engine=f"strategy-{request.mode}"
+            engine="openai-gpt-3.5-turbo"
         )
-    except ValueError as e:
-        # 공장에서 잘못된 모드라는 에러를 보낸 경우
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        # 그 외의 모든 에러 처리
         print(f"의도 분류 중 오류 발생: {e}")
         raise HTTPException(status_code=500, detail="의도 분류 중 서버 오류가 발생했습니다.")
     
 @app.post("/embed", response_model=EmbeddingResponse)
 async def get_embeddings(request: EmbeddingRequest):
     """
-    주어진 텍스트 리스트를 임베딩 벡터 리스트로 변환
+    주어진 텍스트 리스트를 임베딩 벡터 리스트로 변환 (OpenAI API 직접 사용)
     """
-    if embeddings is None:
-        raise HTTPException(status_code=500, detail="임베딩 모델이 준비되지 않았습니다.")
+    if client is None:
+        raise HTTPException(status_code=500, detail="OpenAI 클라이언트가 준비되지 않았습니다.")
+    
     try:
-        # OpenAI 임베딩 모델을 사용하여 여러 텍스트를 한 번에 벡터로 변환
-        embedding_vectors = embeddings.embed_documents(request.texts)
+        # OpenAI 임베딩 API를 직접 사용
+        response = client.embeddings.create(
+            model="text-embedding-3-small",
+            input=request.texts
+        )
+        
+        # 임베딩 벡터 추출
+        embedding_vectors = [data.embedding for data in response.data]
         return EmbeddingResponse(embeddings=embedding_vectors)
     except Exception as e:
         print(f"임베딩 생성 중 오류 발생: {e}")
