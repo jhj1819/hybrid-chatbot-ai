@@ -19,8 +19,8 @@ COPY requirements.txt .
 # pip 업그레이드
 RUN pip install --upgrade pip
 
-# 핵심 패키지 먼저 설치
-RUN pip install --no-cache-dir fastapi uvicorn openai python-dotenv numpy pydantic requests
+# 핵심 패키지 먼저 설치 (Pydantic 버전 명시)
+RUN pip install --no-cache-dir fastapi uvicorn openai python-dotenv numpy pydantic==2.11.9 requests
 
 # langchain 패키지 설치 (호환 버전으로 수정)
 RUN pip install --no-cache-dir langchain==0.1.0 langchain-openai==0.0.5 langchain-community==0.0.10
