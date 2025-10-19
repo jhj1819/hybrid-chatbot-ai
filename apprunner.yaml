@@ -1,5 +1,15 @@
 version: 1.0
 build:
   builder: dockerfile
+  dockerfile: Dockerfile
 run:
-  port: 8000
+  runtime-version: latest
+  command: python run_server.py
+  network:
+    port: 8000
+    env: PORT
+  env:
+    - name: PORT
+      value: "8000"
+    - name: PYTHONPATH
+      value: "/app"
