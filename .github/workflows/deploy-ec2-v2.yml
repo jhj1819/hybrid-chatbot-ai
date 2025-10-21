@@ -28,10 +28,17 @@ jobs:
       run: |
         echo "EC2 인스턴스 생성을 시작합니다..."
         
-        # 보안 그룹 없이 인스턴스 생성 (권한 문제 우회)
-        echo "보안 그룹 없이 인스턴스를 생성합니다..."
+        # 기본 보안 그룹 사용
+        echo "기본 보안 그룹을 사용하여 인스턴스를 생성합니다..."
         
-        # 보안 그룹 설정 건너뛰기 (권한 문제로 인해)
+        # 기본 보안 그룹 ID 가져오기
+        DEFAULT_SG_ID=$(aws ec2 describe-security-groups \
+          --filters "Name=group-name,Values=default" \
+          --region ${{ env.AWS_REGION }} \
+          --query 'SecurityGroups[0].GroupId' \
+          --output text)
+        
+        echo "기본 보안 그룹 ID: $DEFAULT_SG_ID"
         
         # 사용자 데이터 스크립트 생성
         cat > user-data.sh << 'EOF'
@@ -101,11 +108,20 @@ jobs:
         
         echo "사용할 AMI ID: $AMI_ID"
         
-        # EC2 인스턴스 생성 (보안 그룹 없이)
+        # 기본 보안 그룹에 포트 8000 추가
+        aws ec2 authorize-security-group-ingress \
+          --group-id $DEFAULT_SG_ID \
+          --protocol tcp \
+          --port 8000 \
+          --cidr 0.0.0.0/0 \
+          --region ${{ env.AWS_REGION }} 2>/dev/null || true
+        
+        # EC2 인스턴스 생성 (기본 보안 그룹 사용)
         INSTANCE_ID=$(aws ec2 run-instances \
           --image-id $AMI_ID \
           --count 1 \
           --instance-type ${{ env.INSTANCE_TYPE }} \
+          --security-group-ids $DEFAULT_SG_ID \
           --user-data file://user-data.sh \
           --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=hybrid-chatbot-ai}]" \
           --region ${{ env.AWS_REGION }} \
