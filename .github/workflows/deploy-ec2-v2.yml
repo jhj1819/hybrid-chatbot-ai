@@ -28,22 +28,10 @@ jobs:
       run: |
         echo "EC2 인스턴스 생성을 시작합니다..."
         
-        # 기본 보안 그룹 사용 (권한 문제 해결)
-        SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
-          --filters "Name=group-name,Values=default" \
-          --region ${{ env.AWS_REGION }} \
-          --query 'SecurityGroups[0].GroupId' \
-          --output text)
+        # 보안 그룹 없이 인스턴스 생성 (권한 문제 우회)
+        echo "보안 그룹 없이 인스턴스를 생성합니다..."
         
-        echo "보안 그룹 ID: $SECURITY_GROUP_ID"
-        
-        # 기본 보안 그룹에 포트 8000 추가 (SSH는 이미 허용됨)
-        aws ec2 authorize-security-group-ingress \
-          --group-id $SECURITY_GROUP_ID \
-          --protocol tcp \
-          --port 8000 \
-          --cidr 0.0.0.0/0 \
-          --region ${{ env.AWS_REGION }} 2>/dev/null || true
+        # 보안 그룹 설정 건너뛰기 (권한 문제로 인해)
         
         # 사용자 데이터 스크립트 생성
         cat > user-data.sh << 'EOF'
@@ -107,12 +95,11 @@ jobs:
         sudo systemctl status hybrid-chatbot --no-pager
         EOF
         
-        # EC2 인스턴스 생성
+        # EC2 인스턴스 생성 (보안 그룹 없이)
         INSTANCE_ID=$(aws ec2 run-instances \
           --image-id ami-0c02fb55956c7d316 \
           --count 1 \
           --instance-type ${{ env.INSTANCE_TYPE }} \
-          --security-group-ids $SECURITY_GROUP_ID \
           --user-data file://user-data.sh \
           --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=hybrid-chatbot-ai}]" \
           --region ${{ env.AWS_REGION }} \
