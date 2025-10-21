@@ -95,9 +95,19 @@ jobs:
         sudo systemctl status hybrid-chatbot --no-pager
         EOF
         
+        # 최신 Amazon Linux 2 AMI ID 가져오기
+        AMI_ID=$(aws ec2 describe-images \
+          --owners amazon \
+          --filters "Name=name,Values=amzn2-ami-hvm-*-x86_64-gp2" \
+          --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
+          --region ${{ env.AWS_REGION }} \
+          --output text)
+        
+        echo "사용할 AMI ID: $AMI_ID"
+        
         # EC2 인스턴스 생성 (보안 그룹 없이)
         INSTANCE_ID=$(aws ec2 run-instances \
-          --image-id ami-0c02fb55956c7d316 \
+          --image-id $AMI_ID \
           --count 1 \
           --instance-type ${{ env.INSTANCE_TYPE }} \
           --user-data file://user-data.sh \
