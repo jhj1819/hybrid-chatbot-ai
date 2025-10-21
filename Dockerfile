@@ -21,14 +21,8 @@ COPY requirements.txt .
 # pip 업그레이드
 RUN pip install --upgrade pip
 
-# 핵심 패키지 먼저 설치 (Pydantic 버전 명시)
-RUN pip install --no-cache-dir fastapi uvicorn openai python-dotenv numpy pydantic==2.11.9 requests
-
-# langchain 패키지 설치 (최신 안정 버전으로 수정)
-RUN pip install --no-cache-dir langchain==0.3.7 langchain-openai==0.2.8 langchain-community==0.3.7
-
-# FAISS 설치
-RUN pip install --no-cache-dir faiss-cpu==1.12.0
+# requirements.txt에서 모든 패키지 설치
+RUN pip install --no-cache-dir -r requirements.txt
 
 # 앱 코드 복사
 COPY . .
@@ -45,9 +39,9 @@ RUN useradd --create-home --shell /bin/bash appuser && \
     chown -R appuser:appuser /app
 USER appuser
 
-# 헬스체크 추가
+# 헬스체크 추가 (Python을 사용한 간단한 헬스체크)
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/ || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/')" || exit 1
 
 # 서버 실행
 CMD ["python", "run_server.py"]

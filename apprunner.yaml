@@ -1,9 +1,6 @@
 version: 1.0
-build:
-  builder: dockerfile
-  dockerfile: Dockerfile
 run:
-  runtime-version: latest
+  runtime-version: python-3.12
   command: python run_server.py
   network:
     port: 8000
