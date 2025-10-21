@@ -95,13 +95,9 @@ jobs:
         sudo systemctl status hybrid-chatbot --no-pager
         EOF
         
-        # 최신 Amazon Linux 2 AMI ID 가져오기
-        AMI_ID=$(aws ec2 describe-images \
-          --owners amazon \
-          --filters "Name=name,Values=amzn2-ami-hvm-*-x86_64-gp2" \
-          --query 'Images | sort_by(@, &CreationDate) | [-1].ImageId' \
-          --region ${{ env.AWS_REGION }} \
-          --output text)
+        # 고정 AMI ID 사용 (권한 문제 우회)
+        # Amazon Linux 2 AMI ID (ap-northeast-2)
+        AMI_ID="ami-0c76973fbe0ee100c"
         
         echo "사용할 AMI ID: $AMI_ID"
         
