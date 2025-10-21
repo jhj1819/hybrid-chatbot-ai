@@ -1,4 +1,4 @@
-name: Deploy to AWS App Runner
+name: Test and Validate
 
 on:
   push:
@@ -6,12 +6,8 @@ on:
   pull_request:
     branches: [ main ]
 
-env:
-  AWS_REGION: ap-northeast-2
-  APP_NAME: hybrid-chatbot-ai
-
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     
     steps:
@@ -28,20 +24,15 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         
-    - name: Run tests (if any)
+    - name: Run tests
       run: |
-        echo "Running tests..."
-        # Add your test commands here if you have tests
-        # python -m pytest tests/
+        echo "Running basic validation tests..."
+        python -c "import app.main; print('App imports successfully')"
+        python -c "import run_server; print('Server script imports successfully')"
+        echo "All tests passed!"
         
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-        
-    - name: Deploy to App Runner
+    - name: Validate Docker build
       run: |
-        echo "Deployment completed successfully!"
-        echo "App Runner will automatically build and deploy from GitHub source"
+        echo "Validating Docker configuration..."
+        docker build -t test-build .
+        echo "Docker build validation completed successfully!"
