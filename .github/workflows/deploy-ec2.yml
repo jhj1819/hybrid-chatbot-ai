@@ -28,29 +28,16 @@ jobs:
       run: |
         echo "EC2 인스턴스 생성을 시작합니다..."
         
-        # 보안 그룹 생성 (이미 존재하면 무시)
+        # 기본 보안 그룹 사용 (권한 문제 해결)
         SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
-          --group-names hybrid-chatbot-sg \
+          --filters "Name=group-name,Values=default" \
           --region ${{ env.AWS_REGION }} \
           --query 'SecurityGroups[0].GroupId' \
-          --output text 2>/dev/null || \
-          aws ec2 create-security-group \
-          --group-name hybrid-chatbot-sg \
-          --description "Security group for hybrid chatbot AI" \
-          --region ${{ env.AWS_REGION }} \
-          --query 'GroupId' \
           --output text)
         
         echo "보안 그룹 ID: $SECURITY_GROUP_ID"
         
-        # 보안 그룹 규칙 추가
-        aws ec2 authorize-security-group-ingress \
-          --group-id $SECURITY_GROUP_ID \
-          --protocol tcp \
-          --port 22 \
-          --cidr 0.0.0.0/0 \
-          --region ${{ env.AWS_REGION }} 2>/dev/null || true
-        
+        # 기본 보안 그룹에 포트 8000 추가 (SSH는 이미 허용됨)
         aws ec2 authorize-security-group-ingress \
           --group-id $SECURITY_GROUP_ID \
           --protocol tcp \
