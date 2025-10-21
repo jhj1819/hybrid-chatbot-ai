@@ -10,3 +10,5 @@ run:
       value: "8000"
     - name: PYTHONPATH
       value: "/app"
+    - name: OPENAI_API_KEY
+      value: "${OPENAI_API_KEY}"
