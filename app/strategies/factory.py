@@ -1,4 +1,5 @@
 # app/strategies/factory.py
+from __future__ import annotations
 
 from app.strategies.base import ClassificationStrategy
 from app.strategies.no_rag_strategy import NoRagStrategy
