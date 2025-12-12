@@ -22,8 +22,10 @@ pip3 install --upgrade pip
 pip3 install -r requirements.txt
 
 # 환경 변수 설정
+# ⚠️ 주의: 실제 배포 시 OPENAI_API_KEY를 실제 키로 변경해야 합니다!
 cat > .env << 'EOF'
-OPENAI_API_KEY=sk-your-actual-openai-api-key
+# TODO: 아래 값을 실제 OpenAI API 키로 변경하세요
+OPENAI_API_KEY=sk-your-actual-openai-api-key-REPLACE-THIS
 PORT=8000
 PYTHONPATH=/home/ec2-user/hybrid-chatbot-ai
 EOF

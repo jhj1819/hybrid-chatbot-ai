@@ -310,6 +310,47 @@ docker-compose up -d
 | `WORKERS` | 워커 프로세스 수 | ❌ | 1 |
 | `LOG_LEVEL` | 로그 레벨 | ❌ | info |
 
+## 🔒 보안 주의사항
+
+### ⚠️ Public 저장소 전환 전 확인사항
+
+이 저장소를 public으로 전환하기 전에 다음 사항을 확인하세요:
+
+1. **`.env` 파일이 커밋되지 않았는지 확인**
+   ```bash
+   git ls-files | grep .env
+   ```
+   - `.env` 파일이 목록에 나타나면 **즉시 삭제**하고 Git 히스토리에서 제거하세요
+   - `.gitignore`에 `.env`가 포함되어 있는지 확인하세요
+
+2. **실제 API 키가 코드에 하드코딩되지 않았는지 확인**
+   - 모든 스크립트 파일의 API 키는 플레이스홀더(`sk-your-actual-openai-api-key-REPLACE-THIS`)만 포함되어야 합니다
+   - 실제 키가 발견되면 즉시 키를 재발급하고 코드에서 제거하세요
+
+3. **Git 히스토리 확인**
+   ```bash
+   # Git 히스토리에서 API 키 검색
+   git log -p | grep -i "sk-[a-zA-Z0-9]"
+   ```
+   - 과거 커밋에 실제 키가 있다면 `git filter-branch` 또는 `BFG Repo-Cleaner`를 사용하여 제거하세요
+
+4. **배포 스크립트 확인**
+   - 배포 스크립트(`deploy-ec2.sh`, `ec2-user-data.sh` 등)에는 플레이스홀더만 포함되어 있어야 합니다
+   - 실제 배포 시에는 환경 변수나 AWS Secrets Manager를 사용하세요
+
+### ✅ 현재 상태
+
+- ✅ `.gitignore`에 `.env` 파일이 포함되어 있음
+- ✅ 모든 스크립트에 플레이스홀더만 사용됨
+- ✅ 실제 API 키는 코드에 포함되지 않음
+
+### 🛡️ 권장 보안 사례
+
+1. **환경 변수 사용**: 항상 `.env` 파일을 사용하고 Git에 커밋하지 않기
+2. **AWS Secrets Manager**: 프로덕션 환경에서는 AWS Secrets Manager 사용 권장
+3. **키 로테이션**: 정기적으로 API 키를 재발급하고 업데이트
+4. **접근 제어**: API 키에 최소 권한 원칙 적용
+
 ## 📝 지식 베이스 관리
 
 `knowledge/` 폴더에 `.txt` 파일을 추가하여 지식 베이스를 확장할 수 있습니다. 새로운 문서를 추가한 후 벡터스토어를 재생성하세요:

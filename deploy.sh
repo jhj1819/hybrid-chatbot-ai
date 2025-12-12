@@ -22,8 +22,9 @@ cd ~/hybrid-chatbot-ai
 if [ ! -f .env ]; then
     echo "⚠️  .env 파일이 없습니다. 생성합니다..."
     cat > .env << 'EOF'
-# OpenAI API 키 (아래 값을 실제 키로 변경하세요)
-OPENAI_API_KEY=sk-your-actual-openai-api-key-here
+# OpenAI API 키
+# ⚠️ 주의: 아래 값을 실제 OpenAI API 키로 변경해야 합니다!
+OPENAI_API_KEY=sk-your-actual-openai-api-key-REPLACE-THIS
 
 # 서버 설정
 PORT=8000
