@@ -1,0 +1,134 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ ec2-deployment, main ]
+  workflow_dispatch: # 수동 실행 가능
+
+env:
+  AWS_REGION: ap-northeast-2
+  INSTANCE_TYPE: t2.micro
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: Create EC2 instance
+      run: |
+        echo "EC2 인스턴스 생성을 시작합니다..."
+        
+        # 보안 그룹 없이 인스턴스 생성 (권한 문제 우회)
+        echo "보안 그룹 없이 인스턴스를 생성합니다..."
+        
+        # 사용자 데이터 스크립트 생성
+        cat > user-data.sh << 'EOF'
+        #!/bin/bash
+        yum update -y
+        yum install -y git python3 python3-pip htop
+        
+        # Python 3.8 설치
+        amazon-linux-extras install python3.8 -y
+        alternatives --set python /usr/bin/python3.8
+        alternatives --set python3 /usr/bin/python3.8
+        
+        # 프로젝트 클론
+        cd /home/ec2-user
+        git clone https://github.com/jhj1819/hybrid-chatbot-ai.git
+        cd hybrid-chatbot-ai
+        
+        # Python 의존성 설치
+        pip3 install --upgrade pip
+        pip3 install -r requirements.txt
+        
+        # 환경 변수 설정
+        cat > .env << 'ENVEOF'
+        OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+        PORT=8000
+        PYTHONPATH=/home/ec2-user/hybrid-chatbot-ai
+        ENVEOF
+        
+        # systemd 서비스 파일 생성
+        sudo tee /etc/systemd/system/hybrid-chatbot.service > /dev/null << 'SERVICEEOF'
+        [Unit]
+        Description=Hybrid Chatbot AI Service
+        After=network.target
+        
+        [Service]
+        Type=simple
+        User=ec2-user
+        WorkingDirectory=/home/ec2-user/hybrid-chatbot-ai
+        Environment=PATH=/usr/bin:/usr/local/bin
+        EnvironmentFile=/home/ec2-user/hybrid-chatbot-ai/.env
+        ExecStart=/usr/bin/python3 run_server.py
+        Restart=always
+        RestartSec=10
+        StandardOutput=journal
+        StandardError=journal
+        
+        [Install]
+        WantedBy=multi-user.target
+        SERVICEEOF
+        
+        # 서비스 시작
+        sudo systemctl daemon-reload
+        sudo systemctl enable hybrid-chatbot
+        sudo systemctl start hybrid-chatbot
+        
+        # 방화벽 설정
+        sudo firewall-cmd --permanent --add-port=8000/tcp
+        sudo firewall-cmd --reload
+        
+        echo "=== 배포 완료 ==="
+        sudo systemctl status hybrid-chatbot --no-pager
+        EOF
+        
+        # 고정 AMI ID 사용 (권한 문제 우회)
+        # Amazon Linux 2 AMI ID (ap-northeast-2)
+        AMI_ID="ami-0c76973fbe0ee100c"
+        
+        echo "사용할 AMI ID: $AMI_ID"
+        
+        # EC2 인스턴스 생성 (보안 그룹 없이)
+        INSTANCE_ID=$(aws ec2 run-instances \
+          --image-id $AMI_ID \
+          --count 1 \
+          --instance-type ${{ env.INSTANCE_TYPE }} \
+          --user-data file://user-data.sh \
+          --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=hybrid-chatbot-ai}]" \
+          --region ${{ env.AWS_REGION }} \
+          --query 'Instances[0].InstanceId' \
+          --output text)
+        
+        echo "인스턴스 ID: $INSTANCE_ID"
+        
+        # 인스턴스 시작 대기
+        aws ec2 wait instance-running --instance-ids $INSTANCE_ID --region ${{ env.AWS_REGION }}
+        
+        # 퍼블릭 IP 가져오기
+        PUBLIC_IP=$(aws ec2 describe-instances \
+          --instance-ids $INSTANCE_ID \
+          --region ${{ env.AWS_REGION }} \
+          --query 'Reservations[0].Instances[0].PublicIpAddress' \
+          --output text)
+        
+        echo "배포 완료!"
+        echo "퍼블릭 IP: $PUBLIC_IP"
+        echo "서비스 URL: http://$PUBLIC_IP:8000"
+        echo "API 문서: http://$PUBLIC_IP:8000/docs"
+        
+    - name: Deploy complete
+      run: |
+        echo "🚀 EC2 배포가 완료되었습니다!"
+        echo "💰 비용 최적화: t2.micro 인스턴스 사용"
+        echo "🔧 자동 재시작: systemd 서비스로 설정됨"

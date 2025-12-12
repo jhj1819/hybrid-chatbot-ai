@@ -4,9 +4,11 @@
 echo "🔧 환경 변수를 설정합니다..."
 
 # .env 파일 생성
+# ⚠️ 주의: 실제 배포 시 OPENAI_API_KEY를 실제 키로 변경해야 합니다!
 cat > .env << 'EOF'
-# OpenAI API 키 (아래 값을 실제 키로 변경하세요)
-OPENAI_API_KEY=sk-your-actual-openai-api-key-here
+# OpenAI API 키
+# TODO: 아래 값을 실제 OpenAI API 키로 변경하세요
+OPENAI_API_KEY=sk-your-actual-openai-api-key-REPLACE-THIS
 
 # 서버 설정
 PORT=8000
